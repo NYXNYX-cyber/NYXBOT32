@@ -1,81 +1,105 @@
-let fetch = require('node-fetch');
+let fetch = require('node-fetch')
 
-let handler = async (m, { text, conn, usedPrefix, command }) => {
-    if (!text) throw `*Contoh:* ${usedPrefix + command} Naruto`;
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+    if (!text) throw `*Contoh:* ${usedPrefix + command} Naruto`
+
+    // Deteksi command (anime atau manga)
+    let isManga = command.includes('manga')
+    let typeName = isManga ? 'Manga' : 'Anime'
+    let endpoint = isManga ? '/api/manga' : '/api/anime'
+
+    // Beri reaksi loading
+    await conn.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
 
     try {
-        let teks = '*MyAnimeList Search (via Jikan API)*\n\n';
-        const api = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(text)}`);
-        if (!api.ok) {
-            throw new Error(`HTTP error! status: ${api.status}`);
-        }
-        const json = await api.json();
+        // 1. Panggil API NYX Kamu
+        // Otomatis menempelkan apikey dari config.js
+        let url = API('nyx', endpoint, { q: text }, 'apikey')
+        
+        let res = await fetch(url)
+        if (!res.ok) throw 'Server API sedang sibuk.'
+        
+        let json = await res.json()
 
-        // Debugging respons API (Hapus/komentari setelah selesai)
-        console.log('API Response:', JSON.stringify(json, null, 2));
+        // 2. Validasi Data
+        if (!json.status) throw json.message || `${typeName} tidak ditemukan!`
 
-        if (json.data && json.data.length > 0) {
-            let results = json.data.slice(0, 1); // Ambil 3 hasil teratas
+        let data = json.data
+        let topResult = data[0]
 
-            results.forEach((anime, index) => {
-                teks += `*${index + 1}. ${anime.title}*\n`;
-                teks += `  ◦ *ID MAL:* ${anime.mal_id}\n`;
+        // 3. Logika Cerdas (List vs Detail)
+        // Jika user mengetik judul persis sama, atau pakai tag --detail
+        let isSpecific = topResult.title.toLowerCase() === text.toLowerCase() || 
+                         (topResult.title_english && topResult.title_english.toLowerCase() === text.toLowerCase())
 
-                // Potong sinopsis menjadi 1 paragraf
-                let sinopsis = anime.synopsis || 'Tidak ada sinopsis';
-                let shortSinopsis = sinopsis.split('\n')[0]; 
-                teks += `  ◦ *Sinopsis:* ${shortSinopsis}\n`; 
-
-                teks += `  ◦ *Tipe:* ${anime.type || 'N/A'}\n`;
-                teks += `  ◦ *Skor:* ${anime.score || 'N/A'}\n`;
-                teks += `  ◦ *Status:* ${anime.status || 'N/A'}\n`;
-
-                // Menambahkan informasi Studio dan Genre
-                teks += `  ◦ *Studio:* ${anime.studios?.map(studio => studio.name).join(', ') || 'N/A'}\n`;
-                teks += `  ◦ *Genre:* ${anime.genres?.map(genre => genre.name).join(', ') || 'N/A'}\n`;
-
-                teks += `  ◦ *Gambar:* ${anime.images?.jpg?.image_url || 'Tidak ada gambar'}\n`;
-                teks += `  ◦ *URL MAL:* ${anime.url || 'N/A'}\n\n`;
-            });
-
-            let thumb = results[0].images?.jpg?.image_url;
-            let sourceUrl = results[0].url;
-
-            if (thumb) {
-                await conn.relayMessage(m.chat, {
-                    extendedTextMessage: {
-                        text: teks.trim(),
-                        contextInfo: {
-                            externalAdReply: {
-                                title: 'Dikanime Search X NYX API',
-                                mediaType: 1,
-                                previewType: 0,
-                                renderLargerThumbnail: true,
-                                thumbnailUrl: thumb,
-                                sourceUrl: sourceUrl || 'https://myanimelist.net/',
-                            }
-                        },
-                        mentions: [m.sender]
-                    }
-                }, {});
+        if (isSpecific || text.includes('--detail')) {
+            // --- TAMPILAN DETAIL (KARTU LENGKAP) ---
+            let caption = `🇯🇵 *${topResult.title}* 🇯🇵\n\n`
+            
+            if (isManga) {
+                caption += `📚 *Type:* ${topResult.type} (Vol: ${topResult.volumes})\n`
+                caption += `✍️ *Author:* ${topResult.authors}\n`
+                caption += `📅 *Rilis:* ${topResult.published}\n`
             } else {
-                await conn.sendMessage(m.chat, teks.trim(), { quoted: m });
+                caption += `📺 *Type:* ${topResult.type} (${topResult.episodes} eps)\n`
+                caption += `⭐ *Score:* ${topResult.score}\n`
+                caption += `🏢 *Studio:* ${topResult.studio}\n`
+                caption += `📅 *Tahun:* ${topResult.year}\n`
             }
+
+            caption += `🎭 *Genre:* ${topResult.genres}\n\n`
+            caption += `📝 *Sinopsis:*\n${topResult.synopsis}\n\n`
+            caption += `🔗 *Link:* ${topResult.url}\n`
+            caption += `_Powered by NYX API_`
+
+            await conn.sendMessage(m.chat, {
+                image: { url: topResult.image },
+                caption: caption
+            }, { quoted: m })
+
         } else {
-            teks += '❌ Tidak ada hasil ditemukan!';
-            await conn.sendMessage(m.chat, teks.trim(), { quoted: m });
+            // --- TAMPILAN LIST (DAFTAR PILIHAN) ---
+            let txt = `🔍 *HASIL PENCARIAN ${typeName.toUpperCase()}*\n`
+            txt += `Kata kunci: "${text}"\n\n`
+            
+            // Tampilkan maksimal 5-6 hasil
+            data.forEach((item, i) => {
+                txt += `${i + 1}. *${item.title}*\n`
+                if (isManga) {
+                    txt += `   📘 ${item.type} | ⭐ ${item.score}\n`
+                } else {
+                    txt += `   📺 ${item.type} | ⭐ ${item.score}\n`
+                }
+            })
+
+            txt += `\n💡 *Tips:* Ketik judul lengkap untuk melihat detail.\n`
+            txt += `Contoh: *${usedPrefix}${command} ${topResult.title}*`
+
+            // Kirim list dengan thumbnail hasil pertama
+            await conn.sendMessage(m.chat, {
+                text: txt,
+                contextInfo: {
+                    externalAdReply: {
+                        title: `Klik untuk detail ${typeName}`,
+                        body: topResult.title,
+                        thumbnailUrl: topResult.image,
+                        sourceUrl: topResult.url,
+                        mediaType: 1,
+                        renderLargerThumbnail: true
+                    }
+                }
+            }, { quoted: m })
         }
 
-    } catch (error) {
-        console.error('Error:', error);
-        m.reply('Terjadi kesalahan saat memproses data!');
+    } catch (e) {
+        console.error(e)
+        m.reply(`❎ Maaf, ${typeName} tidak ditemukan atau terjadi kesalahan server.`)
     }
-};
+}
 
-handler.command = handler.help = ['dikanime'];
-handler.tags = ['internet'];
-handler.premium = false;
-handler.group = false;
-handler.limit = true;
+handler.help = ['anime <judul>', 'manga <judul>']
+handler.tags = ['internet', 'anime']
+handler.command = /^(anime|manga)$/i
+handler.limit = true
 
-module.exports = handler;
+module.exports = handler
