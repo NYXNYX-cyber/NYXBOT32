@@ -1,37 +1,36 @@
-global.owner = ['6285161232384']  
-global.mods = ['6285161232384'] 
-global.prems = ['6285161232384']
-global.nameowner = 'Dika'
-global.numberowner = '6285161232384' 
-global.mail = 'nyx@nyxhosting.site' 
-global.gc = 'https://chat.whatsapp.com/-'
-global.instagram = 'https://instagram.com/Dikazxpw'
-global.wm = '© NYX'
-global.wait = '_*Tunggu sedang di proses...*_'
-global.eror = '_*Server Error*_'
-global.stiker_wait = '*⫹⫺ Stiker sedang dibuat...*'
-global.packname = 'Made With'
-global.author = 'Bot WhatsApp'
-global.autobio = false // Set true untuk mengaktifkan autobio
-global.maxwarn = '3' // Peringatan maksimum
-global.antiporn = true // Auto delete pesan porno (bot harus admin)
+global.owner = ['6285161232384'] // Nomor Owner
+global.mods  = ['6285161232384'] // Moderator
+global.prems = ['6285161232384'] // User Premium
+global.nameowner = 'DIKA' // Nama Owner
+global.numberowner = '6285161232384' // Nomor Owner
+global.mail = 'support@nyxhoster.com' 
+global.gc = 'https://chat.whatsapp.com/' 
+global.instagram = 'https://instagram.com/Dikazxpw' 
+global.wm = '© NYX' // Watermark Bot
+global.wait = '_*⏳ Tunggu sedang di proses...*_' 
+global.eror = '_*❌ Server Error*_' 
+global.stiker_wait = '*⫹⫺ Stiker sedang dibuat...*' 
+global.packname = 'Made With' 
+global.author = 'NYX Bot' 
+global.maxwarn = '5' // Peringatan maksimum
 
-//INI WAJIB DI ISI!//
-global.btc = 'NYXBOT32' 
-//Daftar terlebih dahulu https://api.botcahx.eu.org
+// --- PENGATURAN OTOMATIS ---
+global.autobio = true // Auto ganti bio bot
+global.antiporn = false // Auto delete 18+
+global.spam = true // Anti spam
+global.gcspam = true // Auto tutup grup jika spam
 
-//INI OPTIONAL BOLEH DI ISI BOLEH JUGA ENGGA//
-global.lann = 'NYXBOT32'
-//Daftar https://api.betabotz.eu.org 
+global.nyxKey = 'NYXAPI32' 
 
-//jangan diganti!
+
 global.APIs = {   
-  btc: 'https://api.botcahx.eu.org'
+  nyx: 'https://nyxapi.nyxwave.tech', 
+  btc: 'https://api.botcahx.eu.org' 
 }
 
-//ini tidak di isi juga tidak apa-apa
 global.APIKeys = { 
-  'https://api.botcahx.eu.org': 'NYXBOT32' 
+  'https://nyxapi.nyxwave.tech': global.nyxKey, 
+  'https://api.botcahx.eu.org': 'APIKEY_BTC_KAMU' 
 }
 
 let fs = require('fs')
